@@ -1,0 +1,64 @@
+version: '3.7'
+services:
+  web-static:
+    build: 
+      context: ./spring-boot-containers/
+      dockerfile: Dockerfile-web-static
+    ports:
+      - "${WEB_STATIC_PORT}:8080"
+    networks:
+      docker_net:
+        ipv4_address: ${WEB_STATIC_IP}
+    container_name: 'web-static'
+    volumes:
+      - type: volume
+        source: tmp
+        target: /tmp
+  web-ui:
+    build: 
+      context: ./spring-boot-containers/
+      dockerfile: Dockerfile-web-ui
+    networks:
+      docker_net:
+        ipv4_address: ${WEB_UI_IP}
+    ports:
+      - "${WEB_UI_PORT}:8080"
+    container_name: 'web-ui'
+    volumes:
+      - type: volume
+        source: tmp
+        target: /tmp
+
+  haproxy:
+    build: 
+      context: ./haproxy/
+      dockerfile: Dockerfile-haproxy
+    networks:
+      docker_net:
+        ipv4_address: ${PROXY_IP}
+    ports:
+      - "${PROXY_PORT}:${PROXY_PORT}"
+    container_name: 'haproxy'
+    environment:
+      - WEB_STATIC_IP=${WEB_STATIC_IP}
+      - WEB_STATIC_PORT_ORG=${WEB_STATIC_PORT_ORG}
+      - WEB_UI_IP=${WEB_UI_IP}
+      - WEB_UI_PORT_ORG=${WEB_UI_PORT_ORG}
+      - PROXY_PORT=${PROXY_PORT}
+      - HOST_NAME=${HOST_NAME}
+      - HOST_DOM=${HOST_DOM}
+    depends_on:
+      - web-static
+      - web-ui
+
+
+volumes:
+  tmp:
+
+networks:
+  docker_net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: ${DOCKER_NET}
